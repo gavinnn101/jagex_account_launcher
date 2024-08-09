@@ -13,6 +13,8 @@ SETTINGS_PATH = _BASE_PATH / "data" / "settings.json"
 
 @dataclass
 class JagexAccount:
+    """Jagex account character data needed to login."""
+
     JX_CHARACTER_ID: str
     JX_SESSION_ID: str
     JX_DISPLAY_NAME: str
@@ -20,11 +22,18 @@ class JagexAccount:
     JX_ACCESS_TOKEN: str = ""
 
 
+@dataclass
+class AccountNickname:
+    """Represents the nickname for the account from `accounts.json`."""
+
+    name: str = ""
+
+
 class AccountLauncher:
     def __init__(
         self,
         base_path: Path = Path(__file__).parent.resolve(),
-        jagex_accounts: list[JagexAccount] = None,
+        jagex_accounts: dict[AccountNickname, JagexAccount] = None,
         settings: dict = None,
     ) -> None:
         self._base_path = base_path
@@ -47,7 +56,7 @@ class AccountLauncher:
             logger.debug(f"Unsetting environment variable: {field.name}")
             os.environ.pop(field.name, None)
 
-    def _load_jagex_accounts(self) -> list[JagexAccount]:
+    def _load_jagex_accounts(self) -> dict[AccountNickname, JagexAccount]:
         """Loads Jagex accounts from `accounts.json`."""
         accounts_file_path = self._base_path / "data" / "accounts.json"
         logger.debug(f"Loading jagex accounts from file: {accounts_file_path}")
@@ -65,7 +74,7 @@ class AccountLauncher:
         with open(settings_file_path) as f:
             return json.load(f)
 
-    def launch_account(self, jagex_account: JagexAccount):
+    def launch_account(self, jagex_account: JagexAccount) -> None:
         """Launches a JagexAccount via the runelite jar."""
         logger.info(f"Loading Jagex Account: {jagex_account.JX_DISPLAY_NAME}")
         java_path = self.runelite_install_path / "jre" / "bin" / "java.exe"
@@ -104,9 +113,9 @@ def main():
 
     ac = AccountLauncher(settings=settings)
 
-    ac.launch_account(ac.jagex_accounts["acc1"])
+    # ac.launch_account(ac.jagex_accounts["acc1"])
 
-    time.sleep(5)
+    # time.sleep(5)
 
     ac.launch_account(ac.jagex_accounts["acc2"])
 
