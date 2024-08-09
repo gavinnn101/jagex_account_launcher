@@ -49,7 +49,7 @@ class AccountLauncher:
             return value
         return True
 
-    def _set_envs(self, jagex_account: JagexAccount) -> bool:
+    def _set_env_vars(self, jagex_account: JagexAccount) -> bool:
         """Sets required environment variables to launch a jagex account."""
         for field in fields(jagex_account):
             value = getattr(jagex_account, field.name)
@@ -65,7 +65,7 @@ class AccountLauncher:
             os.environ[field.name] = value
         return True
 
-    def _unset_envs(self, jagex_account: JagexAccount) -> None:
+    def _unset_env_vars(self, jagex_account: JagexAccount) -> None:
         """Unsets the environment variables used to launch a jagex account."""
         for field in fields(jagex_account):
             logger.debug(f"Unsetting environment variable: {field.name}")
@@ -91,7 +91,7 @@ class AccountLauncher:
 
     def launch_account(self, jagex_account: JagexAccount) -> None:
         """Launches a JagexAccount via the runelite jar."""
-        logger.info(f"Loading Jagex Account: {jagex_account.JX_DISPLAY_NAME}")
+        logger.info(f"Launching Jagex Account: {jagex_account.JX_DISPLAY_NAME}")
         java_path = self.runelite_install_path / "jre" / "bin" / "java.exe"
         runelite_jar_path = self.runelite_install_path / "RuneLite.jar"
         launch_cmd = [
@@ -110,14 +110,14 @@ class AccountLauncher:
         ]
 
         # Set environment variables for this account before launching.
-        if self._set_envs(jagex_account):
+        if self._set_env_vars(jagex_account):
             # Launch runelite.
             subprocess.run(launch_cmd, shell=True)
         else:
             logger.warning(f"Not launching account: {jagex_account.JX_DISPLAY_NAME}")
 
         # Unset environment variables for this account after launching.
-        self._unset_envs(jagex_account)
+        self._unset_env_vars(jagex_account)
 
 
 def main():
