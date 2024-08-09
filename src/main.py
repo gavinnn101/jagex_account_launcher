@@ -41,14 +41,29 @@ class AccountLauncher:
         self.settings = settings or self._load_settings()
         self.runelite_install_path = Path(self.settings["runelite_install_path"])
 
-    def _set_envs(self, jagex_account: JagexAccount) -> None:
+    def _validate_account_field(self, field_name, value) -> bool:
+        """Checks if the account data value is valid to use."""
+        required_data = ["JX_CHARACTER_ID", "JX_SESSION_ID", "JX_DISPLAY_NAME"]
+        if field_name in required_data:
+            logger.debug(f"Returning bool for required data value: {bool(value)}")
+            return value
+        return True
+
+    def _set_envs(self, jagex_account: JagexAccount) -> bool:
         """Sets required environment variables to launch a jagex account."""
         for field in fields(jagex_account):
             value = getattr(jagex_account, field.name)
+            if not self._validate_account_field(field.name, value):
+                logger.warning(
+                    f"Failed to validate field: {field.name} with value: {value}"
+                )
+                return False
+
             logger.debug(
                 f"Setting environment variable: {field.name} with value: {value}"
             )
             os.environ[field.name] = value
+        return True
 
     def _unset_envs(self, jagex_account: JagexAccount) -> None:
         """Unsets the environment variables used to launch a jagex account."""
@@ -95,10 +110,11 @@ class AccountLauncher:
         ]
 
         # Set environment variables for this account before launching.
-        self._set_envs(jagex_account)
-
-        # Launch runelite.
-        subprocess.run(launch_cmd, shell=True)
+        if self._set_envs(jagex_account):
+            # Launch runelite.
+            subprocess.run(launch_cmd, shell=True)
+        else:
+            logger.warning(f"Not launching account: {jagex_account.JX_DISPLAY_NAME}")
 
         # Unset environment variables for this account after launching.
         self._unset_envs(jagex_account)
@@ -113,9 +129,9 @@ def main():
 
     ac = AccountLauncher(settings=settings)
 
-    # ac.launch_account(ac.jagex_accounts["acc1"])
+    ac.launch_account(ac.jagex_accounts["acc1"])
 
-    # time.sleep(5)
+    time.sleep(5)
 
     ac.launch_account(ac.jagex_accounts["acc2"])
 
