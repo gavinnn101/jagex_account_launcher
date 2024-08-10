@@ -4,313 +4,515 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jagex Account Launcher</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
+    <div id="app" class="container">
         <h1 class="my-4">Jagex Account Launcher</h1>
-        
-        <!-- Nav Tabs -->
-        <ul class="nav nav-tabs" id="myTab" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="daemons-tab" data-toggle="tab" href="#daemons" role="tab" aria-controls="daemons" aria-selected="true">Daemons</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="accounts-tab" data-toggle="tab" href="#accounts" role="tab" aria-controls="accounts" aria-selected="false">Accounts</a>
-            </li>
-        </ul>
-        
-        <!-- Tab Content -->
-        <div class="tab-content" id="myTabContent">
-            <!-- Daemons Tab -->
-            <div class="tab-pane fade show active" id="daemons" role="tabpanel" aria-labelledby="daemons-tab">
-                <div class="mb-4 mt-3">
-                    <h2 class="d-inline-block">Daemons</h2>
-                </div>
-                <div id="daemons" class="mb-4">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Nickname</th>
-                                <th>IP Address</th>
-                                <th>Port</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="daemonsTableBody">
-                            <!-- Daemon rows will be populated by JavaScript -->
-                            {% for daemon in daemons %}
-                            <tr>
-                                <td>{{ daemon.nickname }}</td>
-                                <td>{{ daemon.ip_address }}</td>
-                                <td>{{ daemon.port }}</td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm" onclick="showLaunchModal('{{ daemon.nickname }}')">Launch Account</button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <!-- Launch Account Modal -->
-                <div class="modal fade" id="launchAccountModal" tabindex="-1" aria-labelledby="launchAccountModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="launchAccountModalLabel">Launch Account</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="launchAccountForm">
-                                    <div class="form-group">
-                                        <label for="accountSelect">Select Account</label>
-                                        <select class="form-control" id="accountSelect" required>
-                                            <!-- Options will be populated by JavaScript -->
-                                        </select>
-                                    </div>
-                                    <input type="hidden" id="selectedDaemonNickname">
-                                    <button type="submit" class="btn btn-primary">Launch</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Accounts Tab -->
-            <div class="tab-pane fade" id="accounts" role="tabpanel" aria-labelledby="accounts-tab">
-                <div class="mb-4 mt-3">
-                    <h2 class="d-inline-block">Accounts</h2>
-                    <button class="btn btn-success float-right" data-toggle="modal" data-target="#addAccountModal">Add Account</button>
-                </div>
-                <div id="accounts" class="mb-4">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Nickname</th>
-                                <th>JX_CHARACTER_ID</th>
-                                <th>JX_SESSION_ID</th>
-                                <th>JX_DISPLAY_NAME</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for nickname, account in accounts.items() %}
-                            <tr>
-                                <td>{{ nickname }}</td>
-                                <td>{{ account.JX_CHARACTER_ID }}</td>
-                                <td>{{ account.JX_SESSION_ID }}</td>
-                                <td>{{ account.JX_DISPLAY_NAME }}</td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm" onclick="editAccount('{{ nickname }}')">Edit</button>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteAccount('{{ nickname }}')">Delete</button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add Account Modal -->
-        <div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addAccountModalLabel">Add Account</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="addAccountForm">
-                            <input type="hidden" id="originalNickname">
-                            <div class="form-group">
-                                <label for="accountNickname">Account Nickname</label>
-                                <input type="text" class="form-control" id="accountNickname" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="jxCharacterId">JX_CHARACTER_ID</label>
-                                <input type="text" class="form-control" id="jxCharacterId" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="jxSessionId">JX_SESSION_ID</label>
-                                <input type="text" class="form-control" id="jxSessionId" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="jxDisplayName">JX_DISPLAY_NAME</label>
-                                <input type="text" class="form-control" id="jxDisplayName" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="jxRefreshToken">JX_REFRESH_TOKEN (Optional)</label>
-                                <input type="text" class="form-control" id="jxRefreshToken">
-                            </div>
-                            <div class="form-group">
-                                <label for="jxAccessToken">JX_ACCESS_TOKEN (Optional)</label>
-                                <input type="text" class="form-control" id="jxAccessToken">
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save Account</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="app-content"></div>
     </div>
 
-    <!-- jQuery and Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        function refreshDaemons() {
-            $.ajax({
-                url: "/get_daemons",
-                type: "GET",
-                success: function(daemons) {
-                    const daemonsTableBody = $('#daemonsTableBody');
-                    daemonsTableBody.empty();  // Clear existing rows
-                    for (let daemon of daemons) {
-                        const row = `
-                            <tr>
-                                <td>${daemon.nickname}</td>
-                                <td>${daemon.ip_address}</td>
-                                <td>${daemon.port}</td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm" onclick="showLaunchModal('${daemon.nickname}')">Launch Account</button>
-                                </td>
-                            </tr>`;
-                        daemonsTableBody.append(row);
-                    }
-                },
-                error: function(response) {
-                    console.error("Failed to load daemons: " + response.responseText);
-                }
-            });
-        }
+        const { ref, h, createApp } = Vue;
 
-        // Refresh daemons list every 5 seconds
-        setInterval(refreshDaemons, 5000);
-
-        function showLaunchModal(daemonNickname) {
-            $('#selectedDaemonNickname').val(daemonNickname);
-            $('#accountSelect').empty();
-
-            $.ajax({
-                url: "/get_accounts",
-                type: "GET",
-                success: function(accounts) {
-                    for (let nickname in accounts) {
-                        $('#accountSelect').append(new Option(nickname, nickname));
-                    }
-                    $('#launchAccountModal').modal('show');
-                },
-                error: function(response) {
-                    alert("Failed to load accounts: " + response.responseText);
-                }
-            });
-        }
-
-        $('#launchAccountForm').submit(function(event) {
-            event.preventDefault();
-
-            const daemonNickname = $('#selectedDaemonNickname').val();
-            const accountId = $('#accountSelect').val();
-
-            $.ajax({
-                url: "/launch_account",
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({ account_id: accountId, daemon_nickname: daemonNickname }),
-                success: function(response) {
-                    alert("Account launched successfully!");
-                    $('#launchAccountModal').modal('hide');
-                },
-                error: function(response) {
-                    const message = response.responseJSON ? response.responseJSON.message : "Unknown error";
-                    alert("Failed to launch account: " + message);
-                }
-            });
-        });
-
-        $('#addAccountForm').submit(function(event) {
-            event.preventDefault();
-
-            const accountData = {
-                originalNickname: $('#originalNickname').val(), // For editing
-                nickname: $('#accountNickname').val(),
-                JX_CHARACTER_ID: $('#jxCharacterId').val(),
-                JX_SESSION_ID: $('#jxSessionId').val(),
-                JX_DISPLAY_NAME: $('#jxDisplayName').val(),
-                JX_REFRESH_TOKEN: $('#jxRefreshToken').val(),
-                JX_ACCESS_TOKEN: $('#jxAccessToken').val(),
-            };
-
-            $.ajax({
-                url: "/add_account", // Will handle both add and edit
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify(accountData),
-                success: function(response) {
-                    alert("Account saved successfully!");
-                    $('#addAccountModal').modal('hide');
-                    location.reload();  // Reload the page to reflect the changes
-                },
-                error: function(response) {
-                    const message = response.responseJSON ? response.responseJSON.message : "Unknown error";
-                    alert("Failed to save account: " + message);
-                }
-            });
-        });
-
-        function deleteAccount(nickname) {
-            if (confirm("Are you sure you want to delete this account?")) {
-                $.ajax({
-                    url: "/delete_account",
-                    type: "POST",
-                    contentType: "application/json",
-                    data: JSON.stringify({ nickname: nickname }),
-                    success: function(response) {
-                        alert("Account deleted successfully!");
-                        location.reload();  // Reload the page to reflect the changes
-                    },
-                    error: function(response) {
-                        const message = response.responseJSON ? response.responseJSON.message : "Unknown error";
-                        alert("Failed to delete account: " + message);
-                    }
-                });
+        const NotificationAlert = {
+            props: ['notification'],
+            emits: ['close'],
+            setup(props, { emit }) {
+                return () => props.notification.message
+                    ? h('div', {
+                        class: ['alert', `alert-${props.notification.type || 'info'}`],
+                        role: 'alert'
+                    }, [
+                        props.notification.message,
+                        h('button', {
+                            type: 'button',
+                            class: 'btn-close',
+                            onClick: () => emit('close'),
+                            'aria-label': 'Close'
+                        })
+                    ])
+                    : null;
             }
-        }
+        };
 
-        function editAccount(nickname) {
-            // Load account details into the modal
-            $.ajax({
-                url: "/get_accounts",
-                type: "GET",
-                success: function(accounts) {
-                    const account = accounts[nickname];
-                    $('#originalNickname').val(nickname);
-                    $('#accountNickname').val(nickname);
-                    $('#jxCharacterId').val(account.JX_CHARACTER_ID);
-                    $('#jxSessionId').val(account.JX_SESSION_ID);
-                    $('#jxDisplayName').val(account.JX_DISPLAY_NAME);
-                    $('#jxRefreshToken').val(account.JX_REFRESH_TOKEN);
-                    $('#jxAccessToken').val(account.JX_ACCESS_TOKEN);
-                    $('#addAccountModalLabel').text("Edit Account");
-                    $('#addAccountModal').modal('show');
-                },
-                error: function(response) {
-                    alert("Failed to load account: " + response.responseText);
+        const DaemonsTable = {
+            props: ['daemons'],
+            emits: ['launch'],
+            setup(props, { emit }) {
+                return () => h('table', { class: 'table table-bordered' }, [
+                    h('thead', {}, [
+                        h('tr', {}, [
+                            h('th', {}, 'Nickname'),
+                            h('th', {}, 'IP Address'),
+                            h('th', {}, 'Port'),
+                            h('th', {}, 'Action')
+                        ])
+                    ]),
+                    h('tbody', {}, props.daemons.length > 0
+                        ? props.daemons.map(daemon =>
+                            h('tr', { key: daemon.nickname }, [
+                                h('td', {}, daemon.nickname),
+                                h('td', {}, daemon.ip_address),
+                                h('td', {}, daemon.port),
+                                h('td', {}, [
+                                    h('button', {
+                                        class: 'btn btn-primary btn-sm',
+                                        onClick: () => emit('launch', daemon.nickname)
+                                    }, 'Launch Account')
+                                ])
+                            ])
+                        )
+                        : h('tr', {}, [
+                            h('td', { colspan: 4, class: 'text-center' }, 'No daemons available')
+                        ])
+                    )
+                ]);
+            }
+        };
+
+        const AccountsTable = {
+            props: ['accounts'],
+            emits: ['edit', 'delete'],
+            setup(props, { emit }) {
+                return () => h('table', { class: 'table table-bordered' }, [
+                    h('thead', {}, [
+                        h('tr', {}, [
+                            h('th', {}, 'Nickname'),
+                            h('th', {}, 'JX_CHARACTER_ID'),
+                            h('th', {}, 'JX_SESSION_ID'),
+                            h('th', {}, 'JX_DISPLAY_NAME'),
+                            h('th', {}, 'Action')
+                        ])
+                    ]),
+                    h('tbody', {}, Object.entries(props.accounts).map(([nickname, account]) =>
+                        h('tr', { key: nickname }, [
+                            h('td', {}, nickname || 'Unnamed Account'),
+                            h('td', {}, account.JX_CHARACTER_ID),
+                            h('td', {}, account.JX_SESSION_ID),
+                            h('td', {}, account.JX_DISPLAY_NAME),
+                            h('td', {}, [
+                                h('button', {
+                                    class: 'btn btn-primary btn-sm me-2',
+                                    onClick: () => emit('edit', nickname)
+                                }, 'Edit'),
+                                h('button', {
+                                    class: 'btn btn-danger btn-sm',
+                                    onClick: () => emit('delete', nickname)
+                                }, 'Delete')
+                            ])
+                        ])
+                    ))
+                ]);
+            }
+        };
+
+        const LaunchAccountModal = {
+            props: ['show', 'accounts', 'selectedDaemon'],
+            emits: ['close', 'launch'],
+            setup(props, { emit }) {
+                const selectedAccount = ref('');
+
+                return () => props.show
+                    ? h('div', {
+                        class: 'modal fade show d-block',
+                        tabindex: '-1',
+                        'aria-labelledby': 'launchAccountModalLabel',
+                        'aria-modal': 'true'
+                    }, [
+                        h('div', { class: 'modal-dialog' }, [
+                            h('div', { class: 'modal-content' }, [
+                                h('div', { class: 'modal-header' }, [
+                                    h('h5', { class: 'modal-title', id: 'launchAccountModalLabel' }, 'Launch Account'),
+                                    h('button', {
+                                        type: 'button',
+                                        class: 'btn-close',
+                                        onClick: () => emit('close'),
+                                        'aria-label': 'Close'
+                                    })
+                                ]),
+                                h('div', { class: 'modal-body' }, [
+                                    h('form', {
+                                        onSubmit: (event) => {
+                                            event.preventDefault();
+                                            emit('launch', selectedAccount.value, props.selectedDaemon);
+                                        }
+                                    }, [
+                                        h('div', { class: 'mb-3' }, [
+                                            h('label', { for: 'accountSelect', class: 'form-label' }, 'Select Account'),
+                                            h('select', {
+                                                class: 'form-select',
+                                                value: selectedAccount.value,
+                                                onInput: (event) => { selectedAccount.value = event.target.value },
+                                                required: true
+                                            }, Object.entries(props.accounts).map(([nickname, account]) =>
+                                                h('option', { value: nickname }, nickname || 'Unnamed Account')
+                                            ))
+                                        ]),
+                                        h('button', {
+                                            type: 'submit',
+                                            class: 'btn btn-primary'
+                                        }, 'Launch')
+                                    ])
+                                ])
+                            ])
+                        ])
+                    ])
+                    : null;
+            }
+        };
+
+        const AccountModal = {
+            props: ['show', 'account'],
+            emits: ['close', 'save'],
+            setup(props, { emit }) {
+                const formData = ref({
+                    nickname: '',
+                    JX_CHARACTER_ID: '',
+                    JX_SESSION_ID: '',
+                    JX_DISPLAY_NAME: '',
+                    JX_REFRESH_TOKEN: '',
+                    JX_ACCESS_TOKEN: '',
+                });
+
+                const resetForm = () => {
+                    formData.value = {
+                        nickname: '',
+                        JX_CHARACTER_ID: '',
+                        JX_SESSION_ID: '',
+                        JX_DISPLAY_NAME: '',
+                        JX_REFRESH_TOKEN: '',
+                        JX_ACCESS_TOKEN: '',
+                    };
+                };
+
+                const handleSubmit = () => {
+                    emit('save', formData.value);
+                };
+
+                if (props.account) {
+                    formData.value = { ...props.account };
+                } else {
+                    resetForm();
                 }
-            });
-        }
 
-        // Initial load of daemons
-        refreshDaemons();
+                return () => props.show
+                    ? h('div', {
+                        class: 'modal fade show d-block',
+                        tabindex: '-1',
+                        'aria-labelledby': 'accountModalLabel',
+                        'aria-modal': 'true'
+                    }, [
+                        h('div', { class: 'modal-dialog' }, [
+                            h('div', { class: 'modal-content' }, [
+                                h('div', { class: 'modal-header' }, [
+                                    h('h5', { class: 'modal-title', id: 'accountModalLabel' }, `${props.account ? 'Edit' : 'Add'} Account`),
+                                    h('button', {
+                                        type: 'button',
+                                        class: 'btn-close',
+                                        onClick: () => emit('close'),
+                                        'aria-label': 'Close'
+                                    })
+                                ]),
+                                h('div', { class: 'modal-body' }, [
+                                    h('form', {
+                                        onSubmit: (event) => {
+                                            event.preventDefault();
+                                            handleSubmit();
+                                        }
+                                    }, [
+                                        h('div', { class: 'mb-3' }, [
+                                            h('label', { for: 'accountNickname', class: 'form-label' }, 'Account Nickname'),
+                                            h('input', {
+                                                type: 'text',
+                                                class: 'form-control',
+                                                id: 'accountNickname',
+                                                value: formData.value.nickname,
+                                                onInput: (event) => { formData.value.nickname = event.target.value },
+                                                required: true
+                                            })
+                                        ]),
+                                        h('div', { class: 'mb-3' }, [
+                                            h('label', { for: 'jxCharacterId', class: 'form-label' }, 'JX_CHARACTER_ID'),
+                                            h('input', {
+                                                type: 'text',
+                                                class: 'form-control',
+                                                id: 'jxCharacterId',
+                                                value: formData.value.JX_CHARACTER_ID,
+                                                onInput: (event) => { formData.value.JX_CHARACTER_ID = event.target.value },
+                                                required: true
+                                            })
+                                        ]),
+                                        h('div', { class: 'mb-3' }, [
+                                            h('label', { for: 'jxSessionId', class: 'form-label' }, 'JX_SESSION_ID'),
+                                            h('input', {
+                                                type: 'text',
+                                                class: 'form-control',
+                                                id: 'jxSessionId',
+                                                value: formData.value.JX_SESSION_ID,
+                                                onInput: (event) => { formData.value.JX_SESSION_ID = event.target.value },
+                                                required: true
+                                            })
+                                        ]),
+                                        h('div', { class: 'mb-3' }, [
+                                            h('label', { for: 'jxDisplayName', class: 'form-label' }, 'JX_DISPLAY_NAME'),
+                                            h('input', {
+                                                type: 'text',
+                                                class: 'form-control',
+                                                id: 'jxDisplayName',
+                                                value: formData.value.JX_DISPLAY_NAME,
+                                                onInput: (event) => { formData.value.JX_DISPLAY_NAME = event.target.value },
+                                                required: true
+                                            })
+                                        ]),
+                                        h('div', { class: 'mb-3' }, [
+                                            h('label', { for: 'jxRefreshToken', class: 'form-label' }, 'JX_REFRESH_TOKEN (Optional)'),
+                                            h('input', {
+                                                type: 'text',
+                                                class: 'form-control',
+                                                id: 'jxRefreshToken',
+                                                value: formData.value.JX_REFRESH_TOKEN,
+                                                onInput: (event) => { formData.value.JX_REFRESH_TOKEN = event.target.value }
+                                            })
+                                        ]),
+                                        h('div', { class: 'mb-3' }, [
+                                            h('label', { for: 'jxAccessToken', class: 'form-label' }, 'JX_ACCESS_TOKEN (Optional)'),
+                                            h('input', {
+                                                type: 'text',
+                                                class: 'form-control',
+                                                id: 'jxAccessToken',
+                                                value: formData.value.JX_ACCESS_TOKEN,
+                                                onInput: (event) => { formData.value.JX_ACCESS_TOKEN = event.target.value }
+                                            })
+                                        ]),
+                                        h('button', {
+                                            type: 'submit',
+                                            class: 'btn btn-primary'
+                                        }, 'Save Account')
+                                    ])
+                                ])
+                            ])
+                        ])
+                    ])
+                    : null;
+            }
+        };
+
+        const app = createApp({
+            components: {
+                NotificationAlert,
+                DaemonsTable,
+                AccountsTable,
+                LaunchAccountModal,
+                AccountModal,
+            },
+            setup() {
+                const daemons = ref([]);
+                const accounts = ref({});
+                const selectedDaemonNickname = ref('');
+                const notification = ref({ type: '', message: '' });
+                const showLaunchModal = ref(false);
+                const showAccountModal = ref(false);
+                const currentAccount = ref(null);
+
+                const fetchDaemons = async () => {
+                    try {
+                        const response = await fetch('/get_daemons');
+                        daemons.value = await response.json();
+                    } catch (error) {
+                        showNotification('danger', 'Failed to load daemons: ' + error.message);
+                    }
+                };
+
+                const fetchAccounts = async () => {
+                    try {
+                        const response = await fetch('/get_accounts');
+                        accounts.value = await response.json();
+                    } catch (error) {
+                        showNotification('danger', 'Failed to load accounts: ' + error.message);
+                    }
+                };
+
+                const showNotification = (type, message) => {
+                    notification.value = { type, message: message || 'No message provided' };
+                };
+
+                const closeNotification = () => {
+                    notification.value = { type: '', message: '' };
+                };
+
+                const openLaunchModal = (daemonNickname) => {
+                    selectedDaemonNickname.value = daemonNickname;
+                    showLaunchModal.value = true;
+                };
+
+                const closeLaunchModal = () => {
+                    showLaunchModal.value = false;
+                    selectedDaemonNickname.value = '';
+                };
+
+                const launchAccount = async (accountId, daemonNickname) => {
+                    try {
+                        const response = await fetch('/launch_account', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ account_id: accountId, daemon_nickname: daemonNickname }),
+                        });
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            showNotification('success', 'Account launched successfully!');
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    } catch (error) {
+                        showNotification('danger', 'Failed to launch account: ' + error.message);
+                    } finally {
+                        closeLaunchModal();
+                    }
+                };
+
+                const openAccountModal = (account = null) => {
+                    currentAccount.value = account;
+                    showAccountModal.value = true;
+                };
+
+                const closeAccountModal = () => {
+                    showAccountModal.value = false;
+                    currentAccount.value = null;
+                };
+
+                const saveAccount = async (accountData) => {
+                    try {
+                        const response = await fetch('/add_account', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(accountData),
+                        });
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            showNotification('success', 'Account saved successfully!');
+                            await fetchAccounts();
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    } catch (error) {
+                        showNotification('danger', 'Failed to save account: ' + error.message);
+                    } finally {
+                        closeAccountModal();
+                    }
+                };
+
+                const deleteAccount = async (nickname) => {
+                    if (confirm("Are you sure you want to delete this account?")) {
+                        try {
+                            const response = await fetch('/delete_account', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ nickname }),
+                            });
+                            const data = await response.json();
+                            if (data.status === 'success') {
+                                showNotification('success', 'Account deleted successfully!');
+                                await fetchAccounts();
+                            } else {
+                                throw new Error(data.message);
+                            }
+                        } catch (error) {
+                            showNotification('danger', 'Failed to delete account: ' + error.message);
+                        }
+                    }
+                };
+
+                // Initial data fetch
+                fetchDaemons();
+                fetchAccounts();
+
+                // Set up interval for refreshing daemons
+                setInterval(fetchDaemons, 5000);
+
+                return () => h('div', [
+                    h(NotificationAlert, {
+                        notification: notification.value,
+                        onClose: closeNotification
+                    }),
+                    h('ul', { class: 'nav nav-tabs mb-3' }, [
+                        h('li', { class: 'nav-item' }, [
+                            h('a', {
+                                class: 'nav-link active',
+                                id: 'daemons-tab',
+                                'data-bs-toggle': 'tab',
+                                href: '#daemons',
+                                role: 'tab',
+                                'aria-controls': 'daemons',
+                                'aria-selected': 'true'
+                            }, 'Daemons')
+                        ]),
+                        h('li', { class: 'nav-item' }, [
+                            h('a', {
+                                class: 'nav-link',
+                                id: 'accounts-tab',
+                                'data-bs-toggle': 'tab',
+                                href: '#accounts',
+                                role: 'tab',
+                                'aria-controls': 'accounts',
+                                'aria-selected': 'false'
+                            }, 'Accounts')
+                        ])
+                    ]),
+                    h('div', { class: 'tab-content' }, [
+                        h('div', {
+                            class: 'tab-pane fade show active',
+                            id: 'daemons',
+                            role: 'tabpanel',
+                            'aria-labelledby': 'daemons-tab'
+                        }, [
+                            h('h2', { class: 'mb-3' }, 'Daemons'),
+                            h(DaemonsTable, {
+                                daemons: daemons.value,
+                                onLaunch: openLaunchModal
+                            })
+                        ]),
+                        h('div', {
+                            class: 'tab-pane fade',
+                            id: 'accounts',
+                            role: 'tabpanel',
+                            'aria-labelledby': 'accounts-tab'
+                        }, [
+                            h('div', { class: 'd-flex justify-content-between align-items-center mb-3' }, [
+                                h('h2', {}, 'Accounts'),
+                                h('button', {
+                                    class: 'btn btn-success',
+                                    onClick: () => openAccountModal()
+                                }, 'Add Account')
+                            ]),
+                            h(AccountsTable, {
+                                accounts: accounts.value,
+                                onEdit: openAccountModal,
+                                onDelete: deleteAccount
+                            })
+                        ])
+                    ]),
+                    h(LaunchAccountModal, {
+                        show: showLaunchModal.value,
+                        accounts: accounts.value,
+                        selectedDaemon: selectedDaemonNickname.value,
+                        onClose: closeLaunchModal,
+                        onLaunch: launchAccount
+                    }),
+                    h(AccountModal, {
+                        show: showAccountModal.value,
+                        account: currentAccount.value,
+                        onClose: closeAccountModal,
+                        onSave: saveAccount
+                    })
+                ]);
+            }
+        });
+
+        app.mount('#app-content');
     </script>
 </body>
 </html>

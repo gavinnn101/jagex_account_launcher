@@ -42,7 +42,10 @@ class WebServer:
         def index():
             """Homepage that allows user to launch jagex accounts via runelite clients on daemons."""
             return render_template(
-                "index.html", daemons=self.daemons, accounts=self.accounts
+                "index.html",
+                daemons=self.daemons,
+                accounts=self.accounts,
+                notification={},
             )
 
         @self.app.route("/heartbeat")
@@ -236,9 +239,15 @@ class WebServer:
         """Checks daemon heartbeats and manages `self.daemons` appropriately."""
         while True:
             for index, daemon in enumerate(self.daemons):
-                response = requests.get(
-                    f"http://{daemon.ip_address}:{daemon.port}/heartbeat"
-                )
+                try:
+                    response = requests.get(
+                        f"http://{daemon.ip_address}:{daemon.port}/heartbeat", timeout=5
+                    )
+                except requests.exceptions.ConnectTimeout:
+                    logger.info(
+                        f"Couldn't get heartbeat from daemon: {daemon.nickname}, removing from list."
+                    )
+                    self.daemons.pop(index)
                 if response.ok:
                     continue
                 else:
