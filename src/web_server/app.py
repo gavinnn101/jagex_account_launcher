@@ -236,7 +236,7 @@ class WebServer:
         """Checks daemon heartbeats and manages `self.daemons` appropriately."""
         while True:
             for index, daemon in enumerate(self.daemons):
-                response = requests.post(
+                response = requests.get(
                     f"http://{daemon.ip_address}:{daemon.port}/heartbeat"
                 )
                 if response.ok:
