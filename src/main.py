@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 import sys
 import threading
+import time
 
 _BASE_PATH = Path(__file__).parent.resolve()
 SETTINGS_PATH = _BASE_PATH / "data" / "settings.json"
@@ -44,8 +45,12 @@ def main() -> None:
         daemon_thread.start()
         threads.append(daemon_thread)
 
-    for thread in threads:
-        thread.join()
+    while True:
+        try:
+            time.sleep(1)
+        except KeyboardInterrupt:
+            logger.info("Got keyboard interrupt, exiting.")
+            sys.exit(0)
 
 
 if __name__ == "__main__":
