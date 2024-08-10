@@ -86,22 +86,8 @@ class Daemon:
         self, multicast_address: str = "224.1.1.1", multicast_port: int = 6000
     ):
         """Listens for the server multicast and returns the server IP/Port."""
-        logger.info(
-            f"Attempting to discover server on {multicast_address}:{multicast_port}"
-        )
-        # Create the datagram socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-
-        # Allow multiple sockets to use the same PORT number
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-        # Bind to the multicast port
-        sock.bind(("", multicast_port))
-
-        # Tell the operating system to add the socket to the multicast group on all interfaces
-        group = socket.inet_aton(multicast_address)
-        mreq = struct.pack("4sL", group, socket.INADDR_ANY)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        # Create socket
+        sock = self._create_multicast_socket(multicast_address, multicast_port)
 
         while True:
             if self.server_address:
@@ -121,23 +107,43 @@ class Daemon:
                     logger.warning(
                         f"Failed to reach server at {server_ip}:{server_port}: {e}"
                     )
-                    # If the server is not reachable, reset server_address to None
+                    # If the server is not reachable, reset server_address and socket.
                     self.server_address = None
+                    sock = self._create_multicast_socket(
+                        multicast_address, multicast_port
+                    )
+                    logger.info("Cleared server address due to unreachable server.")
             else:
-                logger.debug(
-                    f"Listening for multicast messages on {multicast_address}:{multicast_port}..."
+                logger.info(
+                    f"Attempting to discover server at: {multicast_address}:{multicast_port}..."
                 )
+                # This will block forever if it doesn't receives anything.
                 data, address = sock.recvfrom(1024)
                 message = data.decode("utf-8")
                 logger.debug(f"Received message: {message} from {address}")
 
                 if message.startswith("SERVER_IP:"):
                     _, server_ip, server_port = message.split(":")
-                    logger.info(f"Discovered server at {server_ip}:{server_port}")
+                    logger.info(
+                        f"Discovered server at {server_ip}:{server_port} from {address}"
+                    )
+
                     self.server_address = [server_ip, int(server_port)]
 
                     # Register with the new found server
                     self._register_with_server()
+
+    def _create_multicast_socket(self, multicast_address, multicast_port):
+        """Creates and returns a multicast socket."""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("", multicast_port))
+
+        group = socket.inet_aton(multicast_address)
+        mreq = struct.pack("4sL", group, socket.INADDR_ANY)
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+        return sock
 
     def _register_with_server(self, server_address: tuple[str, int] = None):
         data = {
