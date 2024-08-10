@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jagex Account Launcher</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Jagex Account Launcher</h1>
+        
+        <!-- Nav Tabs -->
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="daemons-tab" data-toggle="tab" href="#daemons" role="tab" aria-controls="daemons" aria-selected="true">Daemons</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="accounts-tab" data-toggle="tab" href="#accounts" role="tab" aria-controls="accounts" aria-selected="false">Accounts</a>
+            </li>
+        </ul>
+        
+        <!-- Tab Content -->
+        <div class="tab-content" id="myTabContent">
+            <!-- Daemons Tab -->
+            <div class="tab-pane fade show active" id="daemons" role="tabpanel" aria-labelledby="daemons-tab">
+                <div class="mb-4 mt-3">
+                    <h2 class="d-inline-block">Daemons</h2>
+                </div>
+                <div id="daemons" class="mb-4">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Nickname</th>
+                                <th>IP Address</th>
+                                <th>Port</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for daemon in daemons %}
+                            <tr>
+                                <td>{{ daemon.nickname }}</td>
+                                <td>{{ daemon.ip_address }}</td>
+                                <td>{{ daemon.port }}</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" onclick="showLaunchModal('{{ daemon.nickname }}')">Launch Account</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Accounts Tab -->
+            <div class="tab-pane fade" id="accounts" role="tabpanel" aria-labelledby="accounts-tab">
+                <div class="mb-4 mt-3">
+                    <h2 class="d-inline-block">Accounts</h2>
+                    <button class="btn btn-success float-right" data-toggle="modal" data-target="#addAccountModal">Add Account</button>
+                </div>
+                <div id="accounts" class="mb-4">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Nickname</th>
+                                <th>JX_CHARACTER_ID</th>
+                                <th>JX_SESSION_ID</th>
+                                <th>JX_DISPLAY_NAME</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for nickname, account in accounts.items() %}
+                            <tr>
+                                <td>{{ nickname }}</td>
+                                <td>{{ account.JX_CHARACTER_ID }}</td>
+                                <td>{{ account.JX_SESSION_ID }}</td>
+                                <td>{{ account.JX_DISPLAY_NAME }}</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" onclick="editAccount('{{ nickname }}')">Edit</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteAccount('{{ nickname }}')">Delete</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Account Modal -->
+        <div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addAccountModalLabel">Add Account</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addAccountForm">
+                            <input type="hidden" id="originalNickname">
+                            <div class="form-group">
+                                <label for="accountNickname">Account Nickname</label>
+                                <input type="text" class="form-control" id="accountNickname" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="jxCharacterId">JX_CHARACTER_ID</label>
+                                <input type="text" class="form-control" id="jxCharacterId" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="jxSessionId">JX_SESSION_ID</label>
+                                <input type="text" class="form-control" id="jxSessionId" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="jxDisplayName">JX_DISPLAY_NAME</label>
+                                <input type="text" class="form-control" id="jxDisplayName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="jxRefreshToken">JX_REFRESH_TOKEN (Optional)</label>
+                                <input type="text" class="form-control" id="jxRefreshToken">
+                            </div>
+                            <div class="form-group">
+                                <label for="jxAccessToken">JX_ACCESS_TOKEN (Optional)</label>
+                                <input type="text" class="form-control" id="jxAccessToken">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Account</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- Place JavaScript code here, at the end of the body -->
+    <script>
+        function showLaunchModal(daemonNickname) {
+            $('#selectedDaemonNickname').val(daemonNickname);
+            $('#accountSelect').empty();
+
+            $.ajax({
+                url: "/get_accounts",
+                type: "GET",
+                success: function(accounts) {
+                    for (let nickname in accounts) {
+                        $('#accountSelect').append(new Option(nickname, nickname));
+                    }
+                    $('#launchAccountModal').modal('show');
+                },
+                error: function(response) {
+                    alert("Failed to load accounts: " + response.responseText);
+                }
+            });
+        }
+
+        $('#launchAccountForm').submit(function(event) {
+            event.preventDefault();
+
+            const daemonNickname = $('#selectedDaemonNickname').val();
+            const accountId = $('#accountSelect').val();
+
+            $.ajax({
+                url: "/launch_account",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ account_id: accountId, daemon_nickname: daemonNickname }),
+                success: function(response) {
+                    alert("Account launched successfully!");
+                    $('#launchAccountModal').modal('hide');
+                },
+                error: function(response) {
+                    const message = response.responseJSON ? response.responseJSON.message : "Unknown error";
+                    alert("Failed to launch account: " + message);
+                }
+            });
+        });
+
+        $('#addAccountForm').submit(function(event) {
+            event.preventDefault();
+
+            const accountData = {
+                originalNickname: $('#originalNickname').val(), // For editing
+                nickname: $('#accountNickname').val(),
+                JX_CHARACTER_ID: $('#jxCharacterId').val(),
+                JX_SESSION_ID: $('#jxSessionId').val(),
+                JX_DISPLAY_NAME: $('#jxDisplayName').val(),
+                JX_REFRESH_TOKEN: $('#jxRefreshToken').val(),
+                JX_ACCESS_TOKEN: $('#jxAccessToken').val(),
+            };
+
+            $.ajax({
+                url: "/add_account", // Will handle both add and edit
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(accountData),
+                success: function(response) {
+                    alert("Account saved successfully!");
+                    $('#addAccountModal').modal('hide');
+                    location.reload();  // Reload the page to reflect the changes
+                },
+                error: function(response) {
+                    const message = response.responseJSON ? response.responseJSON.message : "Unknown error";
+                    alert("Failed to save account: " + message);
+                }
+            });
+        });
+
+        function deleteAccount(nickname) {
+            if (confirm("Are you sure you want to delete this account?")) {
+                $.ajax({
+                    url: "/delete_account",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ nickname: nickname }),
+                    success: function(response) {
+                        alert("Account deleted successfully!");
+                        location.reload();  // Reload the page to reflect the changes
+                    },
+                    error: function(response) {
+                        const message = response.responseJSON ? response.responseJSON.message : "Unknown error";
+                        alert("Failed to delete account: " + message);
+                    }
+                });
+            }
+        }
+
+        function editAccount(nickname) {
+            // Load account details into the modal
+            $.ajax({
+                url: "/get_accounts",
+                type: "GET",
+                success: function(accounts) {
+                    const account = accounts[nickname];
+                    $('#originalNickname').val(nickname);
+                    $('#accountNickname').val(nickname);
+                    $('#jxCharacterId').val(account.JX_CHARACTER_ID);
+                    $('#jxSessionId').val(account.JX_SESSION_ID);
+                    $('#jxDisplayName').val(account.JX_DISPLAY_NAME);
+                    $('#jxRefreshToken').val(account.JX_REFRESH_TOKEN);
+                    $('#jxAccessToken').val(account.JX_ACCESS_TOKEN);
+                    $('#addAccountModalLabel').text("Edit Account");
+                    $('#addAccountModal').modal('show');
+                },
+                error: function(response) {
+                    alert("Failed to load account: " + response.responseText);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
