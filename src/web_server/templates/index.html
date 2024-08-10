@@ -38,7 +38,8 @@
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="daemonsTableBody">
+                            <!-- Daemon rows will be populated by JavaScript -->
                             {% for daemon in daemons %}
                             <tr>
                                 <td>{{ daemon.nickname }}</td>
@@ -165,8 +166,36 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
-    <!-- Place JavaScript code here, at the end of the body -->
     <script>
+        function refreshDaemons() {
+            $.ajax({
+                url: "/get_daemons",
+                type: "GET",
+                success: function(daemons) {
+                    const daemonsTableBody = $('#daemonsTableBody');
+                    daemonsTableBody.empty();  // Clear existing rows
+                    for (let daemon of daemons) {
+                        const row = `
+                            <tr>
+                                <td>${daemon.nickname}</td>
+                                <td>${daemon.ip_address}</td>
+                                <td>${daemon.port}</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" onclick="showLaunchModal('${daemon.nickname}')">Launch Account</button>
+                                </td>
+                            </tr>`;
+                        daemonsTableBody.append(row);
+                    }
+                },
+                error: function(response) {
+                    console.error("Failed to load daemons: " + response.responseText);
+                }
+            });
+        }
+
+        // Refresh daemons list every 5 seconds
+        setInterval(refreshDaemons, 5000);
+
         function showLaunchModal(daemonNickname) {
             $('#selectedDaemonNickname').val(daemonNickname);
             $('#accountSelect').empty();
@@ -279,6 +308,9 @@
                 }
             });
         }
+
+        // Initial load of daemons
+        refreshDaemons();
     </script>
 </body>
 </html>

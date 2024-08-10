@@ -50,6 +50,14 @@ class WebServer:
             """Returns a heartbeat response letting the requester know that the server is online."""
             return jsonify({"status": "success", "message": "Server is alive"}), 200
 
+        @self.app.route("/get_daemons", methods=["GET"])
+        def get_daemons():
+            daemon_list = [
+                {"nickname": d.nickname, "ip_address": d.ip_address, "port": d.port}
+                for d in self.daemons
+            ]
+            return jsonify(daemon_list)
+
         @self.app.route("/get_accounts", methods=["GET"])
         def get_accounts():
             """Returns the list of accounts."""
@@ -208,7 +216,7 @@ class WebServer:
         self, multicast_address: str = "224.1.1.1", multicast_port: int = 6000
     ) -> None:
         """Uses multicast to broadcast the server address for daemons to find and use."""
-        # Create the datagram socket
+        # Create socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 
         # Set the TTL (time-to-live) for messages to 1 to stay within the local network
@@ -224,10 +232,26 @@ class WebServer:
             )
             time.sleep(5)
 
+    def _check_daemons(self) -> None:
+        """Checks daemon heartbeats and manages `self.daemons` appropriately."""
+        while True:
+            for index, daemon in enumerate(self.daemons):
+                response = requests.post(
+                    f"http://{daemon.ip_address}:{daemon.port}/heartbeat"
+                )
+                if response.ok:
+                    continue
+                else:
+                    self.daemons.pop(index)
+            time.sleep(5)
+
     def run(self, host: str = None, port: int = None):
         """Runs the webserver app."""
-        # start broadcast thread, required by server for daemons to discover.
+        # Start broadcast thread, required by server for daemons to discover.
         self.run_broadcast_thread()
+
+        # Start daemon checker thread to manage `self.daemons`
+        self.run_check_daemons_thread()
 
         host = host or self.server_ip
         port = port or self.server_port
@@ -239,3 +263,8 @@ class WebServer:
             target=self._broadcast_server_address, daemon=True
         )
         broadcast_thread.start()
+
+    def run_check_daemons_thread(self) -> None:
+        """Starts a separate thread to run heartbeat checks on daemons."""
+        check_daemons_thread = threading.Thread(target=self._check_daemons, daemon=True)
+        check_daemons_thread.start()

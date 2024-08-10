@@ -33,6 +33,12 @@ class Daemon:
         self._setup_routes()
 
     def _setup_routes(self):
+        @self.app.route("/heartbeat")
+        def heartbeat():
+            """Lets the server know that the daemon is online."""
+            logger.debug("Received heartbeat request from server.")
+            return jsonify({"status": "success", "message": "daemon is alive"}), 200
+
         @self.app.route("/launch_account", methods=["POST"])
         def launch_account():
             account_data = request.json
