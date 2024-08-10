@@ -26,10 +26,6 @@ def main() -> None:
         # Initialize the web server
         web_server = WebServer()
 
-        # Start server broadcast thread
-        # This is required for daemons to find the server address
-        web_server.run_broadcast_thread()
-
         # Start the web server in a separate thread
         web_server_thread = threading.Thread(target=web_server.run, daemon=True)
         web_server_thread.start()

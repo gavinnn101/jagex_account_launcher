@@ -4,6 +4,8 @@ from account_launcher.account_launcher import AccountLauncher, JagexAccount
 import socket
 from loguru import logger
 import struct
+import threading
+import time
 
 
 class Daemon:
@@ -19,7 +21,7 @@ class Daemon:
         self.nickname = nickname or self._get_hostname()
         self.ip_address = ip_address or self._get_ip_address()
         self.port = port or self._get_port()
-        self.server_address = server_address or self._discover_server()
+        self.server_address = server_address
         self.settings = settings
 
         self.account_launcher = account_launcher or AccountLauncher(
@@ -83,7 +85,7 @@ class Daemon:
     def _discover_server(
         self, multicast_address: str = "224.1.1.1", multicast_port: int = 6000
     ):
-        """Listens for the server IP multicast and returns the server IP."""
+        """Listens for the server multicast and returns the server IP/Port."""
         logger.info(
             f"Attempting to discover server on {multicast_address}:{multicast_port}"
         )
@@ -102,17 +104,40 @@ class Daemon:
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
         while True:
-            logger.debug(
-                f"Listening for multicast messages on {multicast_address}:{multicast_port}..."
-            )
-            data, address = sock.recvfrom(1024)
-            message = data.decode("utf-8")
-            logger.debug(f"Received message: {message} from {address}")
+            if self.server_address:
+                server_ip, server_port = self.server_address
+                try:
+                    # Send heartbeat request to see if the server is online.
+                    response = requests.get(
+                        f"http://{server_ip}:{server_port}/heartbeat", timeout=5
+                    )
+                    if response.ok:
+                        logger.debug(
+                            f"Server at {server_ip}:{server_port} is still reachable."
+                        )
+                        time.sleep(5)
+                        continue
+                except requests.exceptions.RequestException as e:
+                    logger.warning(
+                        f"Failed to reach server at {server_ip}:{server_port}: {e}"
+                    )
+                    # If the server is not reachable, reset server_address to None
+                    self.server_address = None
+            else:
+                logger.debug(
+                    f"Listening for multicast messages on {multicast_address}:{multicast_port}..."
+                )
+                data, address = sock.recvfrom(1024)
+                message = data.decode("utf-8")
+                logger.debug(f"Received message: {message} from {address}")
 
-            if message.startswith("SERVER_IP:"):
-                _, server_ip, server_port = message.split(":")
-                logger.debug(f"Discovered server at {server_ip}:{server_port}")
-                return server_ip, int(server_port)
+                if message.startswith("SERVER_IP:"):
+                    _, server_ip, server_port = message.split(":")
+                    logger.info(f"Discovered server at {server_ip}:{server_port}")
+                    self.server_address = [server_ip, int(server_port)]
+
+                    # Register with the new found server
+                    self._register_with_server()
 
     def _register_with_server(self, server_address: tuple[str, int] = None):
         data = {
@@ -127,8 +152,12 @@ class Daemon:
         logger.info(f"Registered with server: {response.json()}")
 
     def run(self):
-        # Register the daemon with the web server
-        self._register_with_server()
+        self.run_discover_thread()
 
         # Run the Flask app
         self.app.run(host=self.ip_address, port=self.port)
+
+    def run_discover_thread(self):
+        """Starts a thread to ensure the daemon is connected to a server."""
+        discover_thread = threading.Thread(target=self._discover_server, daemon=True)
+        discover_thread.start()

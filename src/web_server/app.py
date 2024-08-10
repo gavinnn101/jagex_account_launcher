@@ -45,6 +45,11 @@ class WebServer:
                 "index.html", daemons=self.daemons, accounts=self.accounts
             )
 
+        @self.app.route("/heartbeat")
+        def heartbeat():
+            """Returns a heartbeat response letting the requester know that the server is online."""
+            return jsonify({"status": "success", "message": "Server is alive"}), 200
+
         @self.app.route("/get_accounts", methods=["GET"])
         def get_accounts():
             """Returns the list of accounts."""
@@ -221,12 +226,16 @@ class WebServer:
 
     def run(self, host: str = None, port: int = None):
         """Runs the webserver app."""
+        # start broadcast thread, required by server for daemons to discover.
+        self.run_broadcast_thread()
+
         host = host or self.server_ip
         port = port or self.server_port
         self.app.run(host=host, port=port)
 
     def run_broadcast_thread(self) -> None:
         """Starts a separate thread to run the broadcast server to find daemons."""
-        broadcast_thread = threading.Thread(target=self._broadcast_server_address)
-        broadcast_thread.daemon = True
+        broadcast_thread = threading.Thread(
+            target=self._broadcast_server_address, daemon=True
+        )
         broadcast_thread.start()
