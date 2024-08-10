@@ -1,6 +1,6 @@
 import requests
 from flask import Flask, request, jsonify
-from account_launcher.account_launcher import AccountLauncher
+from account_launcher.account_launcher import AccountLauncher, JagexAccount
 import socket
 from loguru import logger
 import struct
@@ -31,18 +31,29 @@ class Daemon:
         self._setup_routes()
 
     def _setup_routes(self):
-        @self.app.route("/launch", methods=["POST"])
+        @self.app.route("/launch_account", methods=["POST"])
         def launch_account():
-            account_id = request.json["account_id"]
+            account_data = request.json
 
-            # Check if the account exists
-            if account_id not in self.account_launcher.jagex_accounts:
-                return jsonify({"status": "error", "message": "Account not found"}), 404
+            # Validate the received data
+            required_fields = ["JX_CHARACTER_ID", "JX_SESSION_ID", "JX_DISPLAY_NAME"]
+            if not all(field in account_data for field in required_fields):
+                return (
+                    jsonify({"status": "error", "message": "Incomplete account data"}),
+                    400,
+                )
+
+            # Create a JagexAccount instance using the received data
+            jagex_account = JagexAccount(
+                JX_CHARACTER_ID=account_data["JX_CHARACTER_ID"],
+                JX_SESSION_ID=account_data["JX_SESSION_ID"],
+                JX_DISPLAY_NAME=account_data["JX_DISPLAY_NAME"],
+                JX_REFRESH_TOKEN=account_data.get("JX_REFRESH_TOKEN", ""),
+                JX_ACCESS_TOKEN=account_data.get("JX_ACCESS_TOKEN", ""),
+            )
 
             # Launch the account using the AccountLauncher
-            self.account_launcher.launch_account(
-                self.account_launcher.jagex_accounts[account_id]
-            )
+            self.account_launcher.launch_account(jagex_account)
 
             return jsonify({"status": "success", "message": "Account launched"})
 

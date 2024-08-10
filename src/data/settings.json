@@ -1,4 +1,10 @@
 {
     "log_level": "debug",
-    "runelite_install_path": "C:/Users/your_username/AppData/Local/RuneLite"
+    "runelite_install_path": "C:/Users/your_username/AppData/Local/RuneLite",
+    "server": {
+        "enabled": true
+    },
+    "daemon": {
+        "enabled": true
+    }
 }

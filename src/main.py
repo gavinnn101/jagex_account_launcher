@@ -19,6 +19,8 @@ def main() -> None:
     logger.remove()
     logger.add(sys.stderr, level=settings["log_level"].upper())
 
+    threads = []
+
     if settings["server"]["enabled"]:
         logger.info("Initializing web server")
         # Initialize the web server
@@ -31,6 +33,7 @@ def main() -> None:
         # Start the web server in a separate thread
         web_server_thread = threading.Thread(target=web_server.run, daemon=True)
         web_server_thread.start()
+        threads.append(web_server_thread)
 
     if settings["daemon"]["enabled"]:
         logger.info("Initializing daemon")
@@ -43,10 +46,10 @@ def main() -> None:
         # Start the daemon in a separate thread
         daemon_thread = threading.Thread(target=daemon.run, daemon=True)
         daemon_thread.start()
+        threads.append(daemon_thread)
 
-        # Join the threads to keep the main program alive
-        web_server_thread.join()
-        daemon_thread.join()
+    for thread in threads:
+        thread.join()
 
 
 if __name__ == "__main__":

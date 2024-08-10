@@ -161,13 +161,21 @@ class WebServer:
             )
 
             if not daemon:
+                logger.warning(f"Daemon not found: {daemon_nickname}")
                 return jsonify({"status": "error", "message": "Daemon not found"}), 404
 
-            # Send the request to the selected daemon
+            # Retrieve the account data from the server's accounts.json
+            account_data = self.accounts[account_id]
+            if not account_data:
+                logger.warning(f"Couldn't find account data for: {account_id}")
+                return jsonify({"status": "error", "message": "Account not found"}), 404
+
+            # Send the account data to the selected daemon
             response = requests.post(
-                f"http://{daemon.ip_address}:{daemon.port}/launch",
-                json={"account_id": account_id},
+                f"http://{daemon.ip_address}:{daemon.port}/launch_account",
+                json=account_data,
             )
+
             return jsonify(response.json())
 
         @self.app.route("/register_daemon", methods=["POST"])
