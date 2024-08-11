@@ -31,6 +31,7 @@ class WebServer:
 
     def _load_accounts(self):
         """Loads accounts from `accounts.json`."""
+        logger.debug("Loading accounts")
         accounts_file_path = self.data_path / "accounts.json"
         if accounts_file_path.exists():
             with open(accounts_file_path, "r") as f:
@@ -51,10 +52,12 @@ class WebServer:
         @self.app.route("/heartbeat")
         def heartbeat():
             """Returns a heartbeat response letting the requester know that the server is online."""
+            logger.debug(f"Sending server is alive response")
             return jsonify({"status": "success", "message": "Server is alive"}), 200
 
         @self.app.route("/get_daemons", methods=["GET"])
         def get_daemons():
+            logger.debug("Returning list of daemons in json format.")
             daemon_list = [
                 {"nickname": d.nickname, "ip_address": d.ip_address, "port": d.port}
                 for d in self.daemons
@@ -72,6 +75,8 @@ class WebServer:
             try:
                 account_data = request.json
                 new_nickname = account_data.get("nickname")
+
+                logger.info(f"Adding account with data: {account_data}")
 
                 if not new_nickname:
                     return (
@@ -117,6 +122,10 @@ class WebServer:
                 account_data = request.json
                 original_nickname = account_data.get("originalNickname")
                 new_nickname = account_data.get("nickname")
+
+                logger.info(
+                    f"Updating account {original_nickname} with data: {account_data}"
+                )
 
                 if not original_nickname or not new_nickname:
                     return (
@@ -182,6 +191,8 @@ class WebServer:
             try:
                 nickname = request.json["nickname"]
                 accounts_file_path = self.data_path / "accounts.json"
+
+                logger.info(f"Deleting account {nickname}")
 
                 if accounts_file_path.exists():
                     with open(accounts_file_path, "r") as f:
@@ -281,6 +292,7 @@ class WebServer:
         """Saves `self.accounts` data to `accounts.json`."""
         try:
             accounts_file_path = self.data_path / "accounts.json"
+            logger.debug(f"Saving current accounts in memory to {accounts_file_path}")
             with open(accounts_file_path, "w") as f:
                 json.dump(self.accounts, f, indent=4)
             logger.info(f"Accounts successfully saved to {accounts_file_path}")
@@ -291,6 +303,7 @@ class WebServer:
         self, multicast_address: str = "224.1.1.1", multicast_port: int = 6000
     ) -> None:
         """Uses multicast to broadcast the server address for daemons to find and use."""
+        logger.debug("Starting broadcast server")
         # Create socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 
