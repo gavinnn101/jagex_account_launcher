@@ -68,55 +68,117 @@ class WebServer:
 
         @self.app.route("/add_account", methods=["POST"])
         def add_account():
-            """Adds or updates an account in the accounts.json file."""
+            """Adds an account to `self.accounts` and `accounts.json`."""
+            try:
+                account_data = request.json
+                new_nickname = account_data.get("nickname")
+
+                if not new_nickname:
+                    return (
+                        jsonify({"status": "error", "message": "Nickname is required"}),
+                        400,
+                    )
+
+                if new_nickname in self.accounts:
+                    return (
+                        jsonify(
+                            {
+                                "status": "error",
+                                "message": "Account with this nickname already exists",
+                            }
+                        ),
+                        409,
+                    )
+
+                self.accounts[new_nickname] = {
+                    "JX_CHARACTER_ID": account_data.get("JX_CHARACTER_ID"),
+                    "JX_SESSION_ID": account_data.get("JX_SESSION_ID"),
+                    "JX_DISPLAY_NAME": account_data.get("JX_DISPLAY_NAME"),
+                    "JX_REFRESH_TOKEN": account_data.get("JX_REFRESH_TOKEN"),
+                    "JX_ACCESS_TOKEN": account_data.get("JX_ACCESS_TOKEN"),
+                }
+
+                self.save_accounts()
+                return (
+                    jsonify(
+                        {"status": "success", "message": "Account added successfully."}
+                    ),
+                    201,
+                )
+
+            except Exception as e:
+                logger.exception("Failed to add account.")
+                return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route("/update_account", methods=["PUT"])
+        def update_account():
+            """Updates an accounts data in `self.accounts` and `accounts.json`."""
             try:
                 account_data = request.json
                 original_nickname = account_data.get("originalNickname")
-                new_nickname = account_data["nickname"]
+                new_nickname = account_data.get("nickname")
 
-                accounts_file_path = self.data_path / "accounts.json"
+                if not original_nickname or not new_nickname:
+                    return (
+                        jsonify(
+                            {
+                                "status": "error",
+                                "message": "Both original and new nicknames are required",
+                            }
+                        ),
+                        400,
+                    )
 
-                if not accounts_file_path.exists():
-                    accounts = {}
-                else:
-                    with open(accounts_file_path, "r") as f:
-                        accounts = json.load(f)
+                if original_nickname not in self.accounts:
+                    return (
+                        jsonify({"status": "error", "message": "Account not found"}),
+                        404,
+                    )
 
-                # Remove old entry if editing and the nickname has changed
-                if original_nickname and original_nickname != new_nickname:
-                    if original_nickname in accounts:
-                        del accounts[original_nickname]
+                if original_nickname != new_nickname and new_nickname in self.accounts:
+                    return (
+                        jsonify(
+                            {
+                                "status": "error",
+                                "message": "New nickname already exists",
+                            }
+                        ),
+                        409,
+                    )
 
-                # Add or update the account
-                accounts[new_nickname] = {
-                    "JX_CHARACTER_ID": account_data["JX_CHARACTER_ID"],
-                    "JX_SESSION_ID": account_data["JX_SESSION_ID"],
-                    "JX_DISPLAY_NAME": account_data["JX_DISPLAY_NAME"],
-                    "JX_REFRESH_TOKEN": account_data["JX_REFRESH_TOKEN"],
-                    "JX_ACCESS_TOKEN": account_data["JX_ACCESS_TOKEN"],
-                }
+                # Remove old entry if the nickname has changed
+                if original_nickname != new_nickname:
+                    self.accounts[new_nickname] = self.accounts.pop(original_nickname)
 
-                with open(accounts_file_path, "w") as f:
-                    json.dump(accounts, f, indent=4)
+                # Update the account data
+                self.accounts[new_nickname].update(
+                    {
+                        "JX_CHARACTER_ID": account_data.get("JX_CHARACTER_ID"),
+                        "JX_SESSION_ID": account_data.get("JX_SESSION_ID"),
+                        "JX_DISPLAY_NAME": account_data.get("JX_DISPLAY_NAME"),
+                        "JX_REFRESH_TOKEN": account_data.get("JX_REFRESH_TOKEN"),
+                        "JX_ACCESS_TOKEN": account_data.get("JX_ACCESS_TOKEN"),
+                    }
+                )
 
-                self.accounts = accounts  # Update the in-memory accounts list
+                self.save_accounts()
                 return (
                     jsonify(
-                        {"status": "success", "message": "Account saved successfully."}
+                        {
+                            "status": "success",
+                            "message": "Account updated successfully.",
+                        }
                     ),
                     200,
                 )
 
             except Exception as e:
-                logger.exception("Failed to save account.")
-                return (
-                    jsonify({"status": "error", "message": "Internal Server Error"}),
-                    500,
-                )
+                logger.exception("Failed to update account.")
+                return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route("/delete_account", methods=["POST"])
         def delete_account():
-            """Deletes an account from the accounts.json file."""
+            """Deletes an account from `self.accounts` and `accounts.json`."""
             try:
                 nickname = request.json["nickname"]
                 accounts_file_path = self.data_path / "accounts.json"
@@ -214,6 +276,16 @@ class WebServer:
                 ),
                 200,
             )
+
+    def save_accounts(self):
+        """Saves `self.accounts` data to `accounts.json`."""
+        try:
+            accounts_file_path = self.data_path / "accounts.json"
+            with open(accounts_file_path, "w") as f:
+                json.dump(self.accounts, f, indent=4)
+            logger.info(f"Accounts successfully saved to {accounts_file_path}")
+        except Exception as e:
+            logger.error(f"Failed to save accounts: {e}")
 
     def _broadcast_server_address(
         self, multicast_address: str = "224.1.1.1", multicast_port: int = 6000

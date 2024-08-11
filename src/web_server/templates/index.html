@@ -147,25 +147,28 @@
                 JX_REFRESH_TOKEN: '',
                 JX_ACCESS_TOKEN: '',
             });
+            const originalNickname = ref('');
 
             const resetForm = () => {
-                Object.assign(formData.value, {
+                formData.value = {
                     nickname: '',
                     JX_CHARACTER_ID: '',
                     JX_SESSION_ID: '',
                     JX_DISPLAY_NAME: '',
                     JX_REFRESH_TOKEN: '',
                     JX_ACCESS_TOKEN: '',
-                });
+                };
+                originalNickname.value = '';
             };
 
             const handleSubmit = () => {
-                emit('save', formData.value);
+                emit('save', { ...formData.value, originalNickname: originalNickname.value });
             };
 
             watch(() => props.account, (newAccount) => {
                 if (newAccount) {
-                    Object.assign(formData.value, newAccount);
+                    formData.value = { ...newAccount };
+                    originalNickname.value = newAccount.nickname;
                 } else {
                     resetForm();
                 }
@@ -217,49 +220,49 @@
     };
 
     const LaunchAccountModal = {
-    props: ['show', 'accounts', 'selectedDaemon'],
-    emits: ['close', 'launch'],
-    setup(props, { emit }) {
-        const selectedAccount = ref('');
+        props: ['show', 'accounts', 'selectedDaemon'],
+        emits: ['close', 'launch'],
+        setup(props, { emit }) {
+            const selectedAccount = ref('');
 
-        const handleSubmit = () => {
-            emit('launch', selectedAccount.value, props.selectedDaemon);
-        };
+            const handleSubmit = () => {
+                emit('launch', selectedAccount.value, props.selectedDaemon);
+            };
 
-        watch(() => props.show, (newShow) => {
-            if (newShow) {
-                selectedAccount.value = '';
-            }
-        });
+            watch(() => props.show, (newShow) => {
+                if (newShow) {
+                    selectedAccount.value = '';
+                }
+            });
 
-        return { selectedAccount, handleSubmit };
-    },
-    template: `
-        <div v-if="show" class="modal fade show d-block" tabindex="-1" aria-labelledby="launchAccountModalLabel" aria-modal="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="launchAccountModalLabel" v-once>Launch Account</h5>
-                        <button type="button" class="btn-close" @click="$emit('close')" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form @submit.prevent="handleSubmit">
-                            <div class="mb-3">
-                                <label for="accountSelect" class="form-label" v-once>Select Account</label>
-                                <select class="form-select" v-model="selectedAccount" required>
-                                    <option value="" disabled v-once>Choose an account</option>
-                                    <option v-for="(account, nickname) in accounts" :value="nickname" :key="nickname">
-                                        {% raw %}{{ nickname }}{% endraw %}
-                                    </option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary" v-once>Launch</button>
-                        </form>
+            return { selectedAccount, handleSubmit };
+        },
+        template: `
+            <div v-if="show" class="modal fade show d-block" tabindex="-1" aria-labelledby="launchAccountModalLabel" aria-modal="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="launchAccountModalLabel" v-once>Launch Account</h5>
+                            <button type="button" class="btn-close" @click="$emit('close')" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form @submit.prevent="handleSubmit">
+                                <div class="mb-3">
+                                    <label for="accountSelect" class="form-label" v-once>Select Account</label>
+                                    <select class="form-select" v-model="selectedAccount" required>
+                                        <option value="" disabled v-once>Choose an account</option>
+                                        <option v-for="(account, nickname) in accounts" :value="nickname" :key="nickname">
+                                            {% raw %}{{ nickname }}{% endraw %}
+                                        </option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary" v-once>Launch</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `
+        `
     };
 
     const app = createApp({
@@ -310,7 +313,7 @@
             const launchAccount = async (accountId, daemonNickname) => {
                 try {
                     const data = await postData('/launch_account', { account_id: accountId, daemon_nickname: daemonNickname }, 'Failed to launch account');
-                    showNotification('success', 'Account launched successfully!');
+                    showNotification('success', 'Account launched!');
                 } catch (error) {
                     showNotification('danger', error.message);
                 } finally {
@@ -318,8 +321,13 @@
                 }
             };
 
-            const openAccountModal = (account = null) => {
-                currentAccount.value = account;
+            const openAccountModal = (nickname = null) => {
+                if (nickname) {
+                    const account = accounts.value[nickname];
+                    currentAccount.value = { ...account, nickname };
+                } else {
+                    currentAccount.value = null;
+                }
                 showAccountModal.value = true;
             };
 
@@ -330,11 +338,37 @@
 
             const saveAccount = async (accountData) => {
                 try {
-                    await postData('/add_account', accountData, 'Failed to save account');
-                    showNotification('success', 'Account saved successfully!');
-                    await fetchAccounts();
+                    const { originalNickname, ...data } = accountData;
+                    let response;
+                    if (originalNickname) {
+                        // This is an update operation
+                        response = await fetch('/update_account', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ originalNickname, ...data }),
+                        });
+                    } else {
+                        // This is a new account
+                        response = await fetch('/add_account', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data),
+                        });
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        showNotification('success', 'Account saved!');
+                        await fetchAccounts();
+                    } else {
+                        throw new Error(result.message);
+                    }
                 } catch (error) {
-                    showNotification('danger', error.message);
+                    showNotification('danger', 'Failed to save account: ' + error.message);
                 } finally {
                     closeAccountModal();
                 }
@@ -344,7 +378,7 @@
                 if (confirm("Are you sure you want to delete this account?")) {
                     try {
                         await postData('/delete_account', { nickname }, 'Failed to delete account');
-                        showNotification('success', 'Account deleted successfully!');
+                        showNotification('success', 'Account deleted!');
                         await fetchAccounts();
                     } catch (error) {
                         showNotification('danger', error.message);
