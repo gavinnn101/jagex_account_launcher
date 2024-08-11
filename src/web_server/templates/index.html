@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jagex Account Launcher</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <div id="app" class="container">
@@ -59,6 +60,35 @@
             notification.value = { type: '', message: '' };
         };
         return { notification, showNotification, closeNotification };
+    };
+
+    // Composable for dark mode
+    const useDarkMode = () => {
+        const isDarkMode = ref(false);
+
+        const toggleDarkMode = () => {
+            isDarkMode.value = !isDarkMode.value;
+            localStorage.setItem('darkMode', isDarkMode.value);
+            applyDarkMode();
+        };
+
+        const applyDarkMode = () => {
+            if (isDarkMode.value) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        };
+
+        onMounted(() => {
+            const savedDarkMode = localStorage.getItem('darkMode');
+            if (savedDarkMode !== null) {
+                isDarkMode.value = JSON.parse(savedDarkMode);
+                applyDarkMode();
+            }
+        });
+
+        return { isDarkMode, toggleDarkMode };
     };
 
     // Components
@@ -276,6 +306,7 @@
         setup() {
             const { fetchData, postData } = useApi();
             const { notification, showNotification, closeNotification } = useNotification();
+            const { isDarkMode, toggleDarkMode } = useDarkMode();
 
             const daemons = ref([]);
             const accounts = ref({});
@@ -416,45 +447,52 @@
                 openAccountModal,
                 closeAccountModal,
                 saveAccount,
-                deleteAccount
+                deleteAccount,
+                isDarkMode,
+                toggleDarkMode
             };
         },
         template: `
-            <notification-alert :notification="notification" @close="closeNotification" />
-            <ul class="nav nav-tabs mb-3">
-                <li class="nav-item">
-                    <a class="nav-link active" id="daemons-tab" data-bs-toggle="tab" href="#daemons" role="tab" aria-controls="daemons" aria-selected="true" v-once>Daemons</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="accounts-tab" data-bs-toggle="tab" href="#accounts" role="tab" aria-controls="accounts" aria-selected="false" v-once>Accounts</a>
-                </li>
-            </ul>
-            <div class="tab-content">
-                <div class="tab-pane fade show active" id="daemons" role="tabpanel" aria-labelledby="daemons-tab">
-                    <h2 class="mb-3" v-once>Daemons</h2>
-                    <daemons-table :daemons="daemons" @launch="openLaunchModal" />
-                </div>
-                <div class="tab-pane fade" id="accounts" role="tabpanel" aria-labelledby="accounts-tab">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 v-once>Accounts</h2>
-                        <button class="btn btn-success" @click="openAccountModal()" v-once>Add Account</button>
+            <div>
+                <button @click="toggleDarkMode" class="btn btn-outline-secondary mb-3">
+                    {% raw %}{{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}{% endraw %}
+                </button>
+                <notification-alert :notification="notification" @close="closeNotification" />
+                <ul class="nav nav-tabs mb-3">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="daemons-tab" data-bs-toggle="tab" href="#daemons" role="tab" aria-controls="daemons" aria-selected="true" v-once>Daemons</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="accounts-tab" data-bs-toggle="tab" href="#accounts" role="tab" aria-controls="accounts" aria-selected="false" v-once>Accounts</a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="daemons" role="tabpanel" aria-labelledby="daemons-tab">
+                        <h2 class="mb-3" v-once>Daemons</h2>
+                        <daemons-table :daemons="daemons" @launch="openLaunchModal" />
                     </div>
-                    <accounts-table :accounts="accounts" @edit="openAccountModal" @delete="deleteAccount" />
+                    <div class="tab-pane fade" id="accounts" role="tabpanel" aria-labelledby="accounts-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2 v-once>Accounts</h2>
+                            <button class="btn btn-success" @click="openAccountModal()" v-once>Add Account</button>
+                        </div>
+                        <accounts-table :accounts="accounts" @edit="openAccountModal" @delete="deleteAccount" />
+                    </div>
                 </div>
+                <launch-account-modal 
+                    :show="showLaunchModal"
+                    :accounts="accounts"
+                    :selected-daemon="selectedDaemonNickname"
+                    @close="closeLaunchModal"
+                    @launch="launchAccount"
+                />
+                <account-modal
+                    :show="showAccountModal"
+                    :account="currentAccount"
+                    @close="closeAccountModal"
+                    @save="saveAccount"
+                />
             </div>
-            <launch-account-modal 
-                :show="showLaunchModal"
-                :accounts="accounts"
-                :selected-daemon="selectedDaemonNickname"
-                @close="closeLaunchModal"
-                @launch="launchAccount"
-            />
-            <account-modal
-                :show="showAccountModal"
-                :account="currentAccount"
-                @close="closeAccountModal"
-                @save="saveAccount"
-            />
         `
     });
 

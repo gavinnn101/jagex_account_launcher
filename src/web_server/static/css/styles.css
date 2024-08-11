@@ -1,0 +1,71 @@
+body.dark-mode {
+    background-color: #333;
+    color: #fff;
+}
+.dark-mode .card,
+.dark-mode .modal-content {
+    background-color: #444;
+    color: #fff;
+}
+.dark-mode .table {
+    color: #fff !important;
+    background-color: #444 !important;
+}
+.dark-mode .table-bordered {
+    border-color: #555;
+}
+.dark-mode .table-bordered th,
+.dark-mode .table-bordered td {
+    border-color: #555;
+}
+.dark-mode .table thead th {
+    background-color: #3a3a3a;
+}
+.dark-mode .table tbody tr,
+.dark-mode .table tbody td {
+    background-color: #444 !important;
+    color: #fff !important;
+}
+.dark-mode .table tbody tr:nth-of-type(odd) {
+    background-color: #3a3a3a !important;
+}
+.dark-mode .table tbody tr:hover {
+    background-color: #555 !important;
+}
+.dark-mode .form-control,
+.dark-mode .form-select {
+    background-color: #555;
+    color: #fff;
+    border-color: #777;
+}
+.dark-mode .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+.dark-mode .nav-tabs .nav-link.active {
+    background-color: #444;
+    color: #fff;
+    border-color: #555;
+}
+.dark-mode .nav-tabs .nav-link:not(.active) {
+    color: #ccc;
+}
+.dark-mode .btn-outline-secondary {
+    color: #fff;
+    border-color: #fff;
+}
+.dark-mode .btn-outline-secondary:hover {
+    background-color: #fff;
+    color: #333;
+}
+.dark-mode .btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+.dark-mode .btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+.dark-mode .btn-success {
+    background-color: #198754;
+    border-color: #198754;
+}
