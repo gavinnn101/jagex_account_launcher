@@ -6,7 +6,7 @@ from flask import Flask
 from .account_manager import AccountManager
 from .daemon_manager import DaemonManager
 from .discovery_server import DiscoveryServer
-from .routes import setup_routes
+from .routes.routes import setup_routes
 
 
 class WebServer:
