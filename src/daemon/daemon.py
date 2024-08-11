@@ -1,11 +1,12 @@
-import requests
-from flask import Flask, request, jsonify
-from account_launcher.account_launcher import AccountLauncher, JagexAccount
 import socket
-from loguru import logger
 import struct
 import threading
 import time
+
+import requests
+from account_launcher.account_launcher import AccountLauncher, JagexAccount
+from flask import Flask, jsonify, request
+from loguru import logger
 
 
 class Daemon:

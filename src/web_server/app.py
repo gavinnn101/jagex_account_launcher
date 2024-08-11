@@ -1,12 +1,13 @@
-from flask import Flask, render_template, request, jsonify
-import requests
-from dataclasses import dataclass
-import socket
-import time
-from loguru import logger
-import threading
-from pathlib import Path
 import json
+import socket
+import threading
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+import requests
+from flask import Flask, jsonify, render_template, request
+from loguru import logger
 
 
 @dataclass
@@ -52,7 +53,7 @@ class WebServer:
         @self.app.route("/heartbeat")
         def heartbeat():
             """Returns a heartbeat response letting the requester know that the server is online."""
-            logger.debug(f"Sending server is alive response")
+            logger.debug("Sending server is alive response")
             return jsonify({"status": "success", "message": "Server is alive"}), 200
 
         @self.app.route("/get_daemons", methods=["GET"])
@@ -232,7 +233,9 @@ class WebServer:
             except Exception as e:
                 logger.exception("Failed to delete account.")
                 return (
-                    jsonify({"status": "error", "message": "Internal Server Error"}),
+                    jsonify(
+                        {"status": "error", "message": f"Internal Server Error: {e}"}
+                    ),
                     500,
                 )
 

@@ -1,13 +1,13 @@
-from account_launcher.account_launcher import AccountLauncher
-from web_server.app import WebServer
-from daemon.daemon import Daemon
-
-from loguru import logger
-from pathlib import Path
 import json
 import sys
 import threading
 import time
+from pathlib import Path
+
+from account_launcher.account_launcher import AccountLauncher
+from daemon.daemon import Daemon
+from loguru import logger
+from web_server.app import WebServer
 
 _BASE_PATH = Path(__file__).parent.resolve()
 SETTINGS_PATH = _BASE_PATH / "data" / "settings.json"
