@@ -1,35 +1,5 @@
+import API from './api.js';
 const { ref, computed, watch, onMounted, onUnmounted, createApp } = Vue;
-
-// Composable for API calls
-const useApi = () => {
-    const fetchData = async (url, errorMessage) => {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error(`${errorMessage}: ${error.message}`);
-            throw error;
-        }
-    };
-
-    const postData = async (url, data, errorMessage) => {
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error(`${errorMessage}: ${error.message}`);
-            throw error;
-        }
-    };
-
-    return { fetchData, postData };
-};
 
 // Composable for notifications
 const useNotification = () => {
@@ -40,7 +10,6 @@ const useNotification = () => {
         clearTimeout(timeoutId);
         notification.value = { type, message: message || 'No message provided' };
 
-        // Set a timer to automatically close the notification
         timeoutId = setTimeout(() => {
             closeNotification();
         }, duration);
@@ -53,7 +22,6 @@ const useNotification = () => {
 
     return { notification, showNotification, closeNotification };
 };
-
 
 // Composable for dark mode
 const useDarkMode = () => {
@@ -100,7 +68,7 @@ const NotificationAlert = {
                     this.isVisible = true;
                     setTimeout(() => {
                         this.isVisible = false;
-                    }, this.fadeDuration); // Adjust to match CSS transition duration
+                    }, this.fadeDuration);
                 }
             },
             immediate: true,
@@ -109,7 +77,7 @@ const NotificationAlert = {
     },
     computed: {
         fadeDuration() {
-            return 3000; // Duration in ms (should match the CSS transition duration)
+            return 3000;
         }
     },
     template: `
@@ -197,6 +165,7 @@ const AccountModal = {
             JX_ACCESS_TOKEN: '',
         });
         const originalNickname = ref('');
+        const errors = ref({});
 
         const resetForm = () => {
             formData.value = {
@@ -208,10 +177,22 @@ const AccountModal = {
                 JX_ACCESS_TOKEN: '',
             };
             originalNickname.value = '';
+            errors.value = {};
+        };
+
+        const validateForm = () => {
+            errors.value = {};
+            if (!formData.value.nickname) errors.value.nickname = 'Nickname is required';
+            if (!formData.value.JX_CHARACTER_ID) errors.value.JX_CHARACTER_ID = 'Character ID is required';
+            if (!formData.value.JX_SESSION_ID) errors.value.JX_SESSION_ID = 'Session ID is required';
+            if (!formData.value.JX_DISPLAY_NAME) errors.value.JX_DISPLAY_NAME = 'Display Name is required';
+            return Object.keys(errors.value).length === 0;
         };
 
         const handleSubmit = () => {
-            emit('save', { ...formData.value, originalNickname: originalNickname.value });
+            if (validateForm()) {
+                emit('save', { ...formData.value, originalNickname: originalNickname.value });
+            }
         };
 
         watch(() => props.account, (newAccount) => {
@@ -223,7 +204,7 @@ const AccountModal = {
             }
         }, { immediate: true });
 
-        return { formData, handleSubmit };
+        return { formData, handleSubmit, errors };
     },
     template: `
         <div v-if="show" class="modal fade show d-block" tabindex="-1" aria-labelledby="accountModalLabel" aria-modal="true">
@@ -236,30 +217,34 @@ const AccountModal = {
                     <div class="modal-body">
                         <form @submit.prevent="handleSubmit">
                             <div class="mb-3">
-                                <label for="accountNickname" class="form-label" v-once>Account Nickname</label>
+                                <label for="accountNickname" class="form-label">Account Nickname</label>
                                 <input type="text" class="form-control" id="accountNickname" v-model="formData.nickname" required>
+                                <div v-if="errors.nickname" class="text-danger">{{ errors.nickname }}</div>
                             </div>
                             <div class="mb-3">
-                                <label for="jxCharacterId" class="form-label" v-once>JX_CHARACTER_ID</label>
+                                <label for="jxCharacterId" class="form-label">JX_CHARACTER_ID</label>
                                 <input type="text" class="form-control" id="jxCharacterId" v-model="formData.JX_CHARACTER_ID" required>
+                                <div v-if="errors.JX_CHARACTER_ID" class="text-danger">{{ errors.JX_CHARACTER_ID }}</div>
                             </div>
                             <div class="mb-3">
-                                <label for="jxSessionId" class="form-label" v-once>JX_SESSION_ID</label>
+                                <label for="jxSessionId" class="form-label">JX_SESSION_ID</label>
                                 <input type="text" class="form-control" id="jxSessionId" v-model="formData.JX_SESSION_ID" required>
+                                <div v-if="errors.JX_SESSION_ID" class="text-danger">{{ errors.JX_SESSION_ID }}</div>
                             </div>
                             <div class="mb-3">
-                                <label for="jxDisplayName" class="form-label" v-once>JX_DISPLAY_NAME</label>
+                                <label for="jxDisplayName" class="form-label">JX_DISPLAY_NAME</label>
                                 <input type="text" class="form-control" id="jxDisplayName" v-model="formData.JX_DISPLAY_NAME" required>
+                                <div v-if="errors.JX_DISPLAY_NAME" class="text-danger">{{ errors.JX_DISPLAY_NAME }}</div>
                             </div>
                             <div class="mb-3">
-                                <label for="jxRefreshToken" class="form-label" v-once>JX_REFRESH_TOKEN (Optional)</label>
+                                <label for="jxRefreshToken" class="form-label">JX_REFRESH_TOKEN (Optional)</label>
                                 <input type="text" class="form-control" id="jxRefreshToken" v-model="formData.JX_REFRESH_TOKEN">
                             </div>
                             <div class="mb-3">
-                                <label for="jxAccessToken" class="form-label" v-once>JX_ACCESS_TOKEN (Optional)</label>
+                                <label for="jxAccessToken" class="form-label">JX_ACCESS_TOKEN (Optional)</label>
                                 <input type="text" class="form-control" id="jxAccessToken" v-model="formData.JX_ACCESS_TOKEN">
                             </div>
-                            <button type="submit" class="btn btn-primary" v-once>Save Account</button>
+                            <button type="submit" class="btn btn-primary">Save Account</button>
                         </form>
                     </div>
                 </div>
@@ -291,21 +276,21 @@ const LaunchAccountModal = {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="launchAccountModalLabel" v-once>Launch Account</h5>
+                        <h5 class="modal-title" id="launchAccountModalLabel">Launch Account</h5>
                         <button type="button" class="btn-close" @click="$emit('close')" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form @submit.prevent="handleSubmit">
                             <div class="mb-3">
-                                <label for="accountSelect" class="form-label" v-once>Select Account</label>
+                                <label for="accountSelect" class="form-label">Select Account</label>
                                 <select class="form-select" v-model="selectedAccount" required>
-                                    <option value="" disabled v-once>Choose an account</option>
+                                    <option value="" disabled>Choose an account</option>
                                     <option v-for="(account, nickname) in accounts" :value="nickname" :key="nickname">
                                         {{ nickname }}
                                     </option>
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-primary" v-once>Launch</button>
+                            <button type="submit" class="btn btn-primary">Launch</button>
                         </form>
                     </div>
                 </div>
@@ -323,7 +308,6 @@ const app = createApp({
         AccountModal,
     },
     setup() {
-        const { fetchData, postData } = useApi();
         const { notification, showNotification, closeNotification } = useNotification();
         const { isDarkMode, toggleDarkMode } = useDarkMode();
 
@@ -336,17 +320,17 @@ const app = createApp({
 
         const fetchDaemons = async () => {
             try {
-                daemons.value = await fetchData('/get_daemons', 'Failed to load daemons');
+                daemons.value = await API.fetchDaemons();
             } catch (error) {
-                showNotification('danger', error.message);
+                showNotification('danger', 'Failed to load daemons');
             }
         };
 
         const fetchAccounts = async () => {
             try {
-                accounts.value = await fetchData('/get_accounts', 'Failed to load accounts');
+                accounts.value = await API.fetchAccounts();
             } catch (error) {
-                showNotification('danger', error.message);
+                showNotification('danger', 'Failed to load accounts');
             }
         };
 
@@ -362,7 +346,7 @@ const app = createApp({
 
         const launchAccount = async (accountId, daemonNickname) => {
             try {
-                const data = await postData('/launch_account', { account_id: accountId, daemon_nickname: daemonNickname }, 'Failed to launch account');
+                await API.launchAccount(accountId, daemonNickname);
                 showNotification('success', 'Account launched!');
             } catch (error) {
                 showNotification('danger', error.message);
@@ -388,35 +372,9 @@ const app = createApp({
 
         const saveAccount = async (accountData) => {
             try {
-                const { originalNickname, ...data } = accountData;
-                let response;
-                if (originalNickname) {
-                    // This is an update operation
-                    response = await fetch('/update_account', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ originalNickname, ...data }),
-                    });
-                } else {
-                    // This is a new account
-                    response = await fetch('/add_account', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data),
-                    });
-                }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                if (result.status === 'success') {
-                    showNotification('success', 'Account saved!');
-                    await fetchAccounts();
-                } else {
-                    throw new Error(result.message);
-                }
+                await API.saveAccount(accountData);
+                showNotification('success', 'Account saved!');
+                await fetchAccounts();
             } catch (error) {
                 showNotification('danger', 'Failed to save account: ' + error.message);
             } finally {
@@ -427,7 +385,7 @@ const app = createApp({
         const deleteAccount = async (nickname) => {
             if (confirm("Are you sure you want to delete this account?")) {
                 try {
-                    await postData('/delete_account', { nickname }, 'Failed to delete account');
+                    await API.deleteAccount(nickname);
                     showNotification('success', 'Account deleted!');
                     await fetchAccounts();
                 } catch (error) {
@@ -436,7 +394,6 @@ const app = createApp({
             }
         };
 
-        // Lifecycle hooks
         onMounted(() => {
             fetchDaemons();
             fetchAccounts();
@@ -479,26 +436,26 @@ const app = createApp({
             <notification-alert :notification="notification" @close="closeNotification" />
             <ul class="nav nav-tabs mb-3">
                 <li class="nav-item">
-                    <a class="nav-link active" id="daemons-tab" data-bs-toggle="tab" href="#daemons" role="tab" aria-controls="daemons" aria-selected="true" v-once>Daemons</a>
+                    <a class="nav-link active" id="daemons-tab" data-bs-toggle="tab" href="#daemons" role="tab" aria-controls="daemons" aria-selected="true">Daemons</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="accounts-tab" data-bs-toggle="tab" href="#accounts" role="tab" aria-controls="accounts" aria-selected="false" v-once>Accounts</a>
+                    <a class="nav-link" id="accounts-tab" data-bs-toggle="tab" href="#accounts" role="tab" aria-controls="accounts" aria-selected="false">Accounts</a>
                 </li>
             </ul>
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="daemons" role="tabpanel" aria-labelledby="daemons-tab">
-                    <h2 class="mb-3" v-once>Daemons</h2>
+                    <h2 class="mb-3">Daemons</h2>
                     <daemons-table :daemons="daemons" @launch="openLaunchModal" />
                 </div>
                 <div class="tab-pane fade" id="accounts" role="tabpanel" aria-labelledby="accounts-tab">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 v-once>Accounts</h2>
-                        <button class="btn btn-success" @click="openAccountModal()" v-once>Add Account</button>
+                        <h2>Accounts</h2>
+                        <button class="btn btn-success" @click="openAccountModal()">Add Account</button>
                     </div>
                     <accounts-table :accounts="accounts" @edit="openAccountModal" @delete="deleteAccount" />
                 </div>
             </div>
-            <launch-account-modal 
+            <launch-account-modal
                 :show="showLaunchModal"
                 :accounts="accounts"
                 :selected-daemon="selectedDaemonNickname"
