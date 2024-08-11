@@ -3,10 +3,10 @@ from pathlib import Path
 
 from flask import Flask
 
-from .account_manager import AccountManager
-from .daemon_manager import DaemonManager
-from .discovery_server import DiscoveryServer
 from .routes.routes import setup_routes
+from .services.account_manager import AccountManager
+from .services.daemon_manager import DaemonManager
+from .services.discovery_server import DiscoveryServer
 
 
 class WebServer:

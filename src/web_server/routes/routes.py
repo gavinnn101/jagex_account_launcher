@@ -1,7 +1,7 @@
 from flask import jsonify, render_template, request
 from loguru import logger
-from web_server.account_manager import AccountManager
-from web_server.daemon_manager import Daemon, DaemonManager
+from web_server.services.account_manager import AccountManager
+from web_server.services.daemon_manager import Daemon, DaemonManager
 
 
 def setup_routes(app, daemon_manager: DaemonManager, account_manager: AccountManager):
