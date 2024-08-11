@@ -34,14 +34,26 @@ const useApi = () => {
 // Composable for notifications
 const useNotification = () => {
     const notification = ref({ type: '', message: '' });
-    const showNotification = (type, message) => {
+    let timeoutId = null;
+
+    const showNotification = (type, message, duration = 3000) => {
+        clearTimeout(timeoutId);
         notification.value = { type, message: message || 'No message provided' };
+
+        // Set a timer to automatically close the notification
+        timeoutId = setTimeout(() => {
+            closeNotification();
+        }, duration);
     };
+
     const closeNotification = () => {
         notification.value = { type: '', message: '' };
+        clearTimeout(timeoutId);
     };
+
     return { notification, showNotification, closeNotification };
 };
+
 
 // Composable for dark mode
 const useDarkMode = () => {
@@ -76,11 +88,37 @@ const useDarkMode = () => {
 const NotificationAlert = {
     props: ['notification'],
     emits: ['close'],
+    data() {
+        return {
+            isVisible: true,
+        };
+    },
+    watch: {
+        notification: {
+            handler(newVal) {
+                if (newVal.message) {
+                    this.isVisible = true;
+                    setTimeout(() => {
+                        this.isVisible = false;
+                    }, this.fadeDuration); // Adjust to match CSS transition duration
+                }
+            },
+            immediate: true,
+            deep: true
+        }
+    },
+    computed: {
+        fadeDuration() {
+            return 3000; // Duration in ms (should match the CSS transition duration)
+        }
+    },
     template: `
-        <div v-if="notification.message" :class="['alert', 'alert-' + (notification.type || 'info')]" role="alert">
-            {{ notification.message }}
-            <button type="button" class="btn-close" @click="$emit('close')" aria-label="Close"></button>
-        </div>
+        <transition name="fade" @after-leave="$emit('close')">
+            <div v-if="isVisible && notification.message" :class="['alert', 'alert-' + (notification.type || 'info')]" role="alert">
+                {{ notification.message }}
+                <button type="button" class="btn-close" @click="isVisible = false" aria-label="Close"></button>
+            </div>
+        </transition>
     `
 };
 

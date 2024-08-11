@@ -69,3 +69,10 @@ body.dark-mode {
     background-color: #198754;
     border-color: #198754;
 }
+
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 3.0s ease;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active in <2.1.8 */ {
+    opacity: 0;
+}
